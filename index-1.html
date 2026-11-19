@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Наш склад</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{font-family:system-ui,-apple-system,sans-serif;color:var(--tg-theme-text-color,#19212b);background:var(--tg-theme-bg-color,#f7f9fc)}*{box-sizing:border-box}body{margin:0;padding:20px 16px 36px;max-width:670px;margin-inline:auto}h1{font-size:26px;margin:6px 0}p{line-height:1.45}.muted{color:var(--tg-theme-hint-color,#627080)}.pill{border-radius:99px;background:#e9f7ee;color:#1c7643;padding:6px 10px;font-size:12px;font-weight:700;display:inline-block}.panel{border:1px solid #dbe1e7;border-radius:18px;padding:16px;margin-top:16px;background:var(--tg-theme-secondary-bg-color,#fff)}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:18px}.stat{background:var(--tg-theme-secondary-bg-color,#fff);border-radius:12px;padding:12px;text-align:center}.stat b{font-size:22px;display:block}button{font:inherit;cursor:pointer;border:0;border-radius:10px;background:var(--tg-theme-button-color,#2685dd);color:var(--tg-theme-button-text-color,#fff);padding:12px 16px}button:disabled{opacity:.4;cursor:default}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #dbe1e7}.row:last-child{border-bottom:0}.stepper{display:flex;gap:9px;align-items:center}.stepper button{padding:8px 12px;min-width:36px}.warn{color:#aa4b07}.small{font-size:13px}.empty{padding:16px;text-align:center}.info{white-space:pre-wrap;word-break:break-word}
+</style>
+</head>
+<body>
+<span class="pill">Демонстраційна версія · оновлено 2</span>
+<h1>🏠 Наш склад</h1>
+<p class="muted">Майбутній спільний склад продуктів для сім'ї</p>
+<div class="stats"><div class="stat"><b id="count">3</b><span class="small muted">Позиції</span></div><div class="stat"><b id="units">15</b><span class="small muted">Одиниці</span></div><div class="stat"><b>👨‍👩‍👧</b><span class="small muted">Сім'я</span></div></div>
+<section class="panel"><b>🔐 Перевірка Telegram</b><p class="small muted">Адреса функції Supabase (не секретний ключ):</p><input type="url" id="auth-url" placeholder="https://...supabase.co/functions/v1/Telegram_auth" aria-label="Адреса telegram-auth" style="width:100%;font:inherit;padding:12px;border:1px solid #aab6c4;border-radius:10px;min-width:0;margin-bottom:10px"/><button id="save-url" type="button" style="margin-bottom:10px">Зберегти адресу</button><p class="small muted" id="auth-status">Перевіряємо середовище запуску…</p><button id="auth-button">Перевірити вхід</button></section>
+<section class="panel"><b>📦 Продукти (приклад)</b><div id="items"></div><p class="small muted">Поки що це демонстраційні дані. Зміни не записуються до Supabase й не синхронізуються між телефонами.</p></section>
+<section class="panel"><b>📷 Сканування штрихкоду</b><p class="small muted">Додамо після підключення захищених операцій зі складом. Сканер визначатиме назву продукту; термін придатності вводитимеш сама.</p><button disabled>Сканувати (скоро)</button></section>
+<script>
+'use strict';
+// Replace this with your project's public Edge Function endpoint, not any secret keys.
+const AUTH_FUNCTION_URL_KEY = 'family-storage-auth-url';
+const authUrlInput = document.getElementById('auth-url');
+authUrlInput.value = localStorage.getItem(AUTH_FUNCTION_URL_KEY) || '';
+document.getElementById('save-url').addEventListener('click',()=>{const u=authUrlInput.value.trim();try{const parsed=new URL(u);if(parsed.protocol!=='https:' || !/^[a-z0-9-]+\.supabase\.co$/i.test(parsed.hostname) || !/^\/functions\/v1\/[A-Za-z0-9_-]+\/?$/.test(parsed.pathname))throw Error();localStorage.setItem(AUTH_FUNCTION_URL_KEY,u);document.getElementById('auth-status').textContent='Адресу збережено на цьому телефоні. Тепер перевір вхід.';}catch{document.getElementById('auth-status').textContent='Встав точну Endpoint URL з Supabase, разом із назвою функції (з урахуванням великих літер та підкреслень).';}});
+const tg = window.Telegram?.WebApp;
+if(tg){tg.ready();tg.expand();}
+const products=[{name:'🥛 Молоко',qty:2,unit:'шт.',date:'25.11.2026'},{name:'🥚 Яйця',qty:10,unit:'шт.',date:'30.11.2026'},{name:'🍝 Макарони',qty:3,unit:'шт.',date:'15.03.2027'}];
+const items=document.getElementById('items');
+function render(){items.replaceChildren();products.forEach((p,i)=>{const row=document.createElement('div');row.className='row';const name=document.createElement('div');const title=document.createElement('b');title.textContent=p.name;const small=document.createElement('div');small.className='muted small';small.textContent='До '+p.date;name.append(title,small);const stepper=document.createElement('div');stepper.className='stepper';const minus=document.createElement('button');minus.textContent='−';minus.disabled=p.qty===0;minus.addEventListener('click',()=>{p.qty=Math.max(0,p.qty-1);render()});const count=document.createElement('span');count.textContent=p.qty+' '+p.unit;const plus=document.createElement('button');plus.textContent='+';plus.addEventListener('click',()=>{p.qty++;render()});stepper.append(minus,count,plus);row.append(name,stepper);items.append(row)});document.getElementById('count').textContent=products.filter(p=>p.qty>0).length;document.getElementById('units').textContent=products.reduce((s,p)=>s+p.qty,0)}render();
+const status=document.getElementById('auth-status');
+async function testAuth(){if(!tg?.initData){status.textContent='Відкрий Mini App кнопкою всередині Telegram. Звичайний браузер не передає підписані дані входу.';return;}const AUTH_FUNCTION_URL=localStorage.getItem(AUTH_FUNCTION_URL_KEY)||'';if(!AUTH_FUNCTION_URL.startsWith('https://')){status.textContent='Спочатку встав і збережи адресу функції telegram-auth у полі вище.';return;}status.textContent='Перевіряємо підпис Telegram…';try{const response=await fetch(AUTH_FUNCTION_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({initData:tg.initData})});const result=await response.json();if(response.ok&&result.verified&&result.member){status.textContent='✅ Telegram підтверджено. Твій акаунт належить до сім’ї.';}else if(response.status===403&&result.verified){status.textContent='✅ Telegram підтверджено. Акаунт ще не доданий до сім’ї. Твій Telegram ID: '+result.telegram_user_id;}else{status.textContent='Перевірка не пройшла ('+response.status+'): '+String(result.error||result.message||'невідома відповідь');}}catch(e){status.textContent='Помилка зв’язку: '+String(e.message||e)+'. Перевір адресу, відкрий додаток через Telegram і перевір Invocations у Supabase.'}}
+document.getElementById('auth-button').addEventListener('click',testAuth);
+status.textContent=tg?.initData?'Telegram відкритий. Натисни «Перевірити вхід».':'Сторінка готова. Після розміщення відкрий її через Telegram-бота.';
+</script>
+</body>
+</html>
